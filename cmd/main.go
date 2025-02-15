@@ -1,39 +1,40 @@
 package main
 
 import (
-	"log"
-
-	tea "github.com/charmbracelet/bubbletea"
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 )
 
 func main() {
-	app := tea.NewProgram(
-		model("A long time ago in a galaxy far, far away"),
-		tea.WithAltScreen(),
-	)
-	if _, err := app.Run(); err != nil {
-		log.Fatalf("failed to run app:\n%v", err)
+	app := tview.NewApplication()
+
+	footer := struct {
+		view        *tview.TextView
+		fixedSize   int
+		proportions int
+		focus       bool
+	}{
+		view:        tview.NewTextView().SetTextAlign(tview.AlignLeft).SetText("Press esc to quit"),
+		fixedSize:   1,
+		proportions: 1,
+		focus:       false,
 	}
-}
 
-type model string
+	layout := tview.NewFlex().
+		AddItem(tview.NewBox().SetBorder(true).SetTitle("Breakpoints"), 0, 1, false).
+		AddItem(tview.NewBox().SetBorder(true).SetTitle("Debugging"), 0, 3, false)
 
-func (m model) Init() tea.Cmd {
-	return nil
-}
+	baseLayout := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(layout, 0, 1, false).
+		AddItem(footer.view, footer.fixedSize, footer.proportions, footer.focus)
 
-func (m model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := message.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "esc", "ctrl+c":
-			return m, tea.Quit
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			app.Stop()
 		}
+		return event
+	})
+	if err := app.SetRoot(baseLayout, true).EnableMouse(true).Run(); err != nil {
+		panic(err)
 	}
-
-	return m, nil
-}
-
-func (m model) View() string {
-	return string(m)
 }
